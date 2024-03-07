@@ -1,0 +1,97 @@
+apiVersion: core.api.humanitec.io/v1
+kind: Definition
+
+metadata:
+  id: redis-in-cluster
+
+entity:
+  criteria:
+  - env_type: ephemeral
+  driver_type: humanitec/template
+  driver_inputs:
+    values:
+      templates:
+        cookie: |
+          port: {{ .init.port }}
+          password: {{ .init.password }}
+        init: |-
+          {{- $password := randAlphaNum 16 | quote }}
+          {{- $port := 6379 }}
+          {{- if .cookie}}
+          {{- $password = .cookie.password }}
+          {{- $port = .cookie.port }}
+          {{- end }}
+          password: {{ $password | quote }}
+          port: {{ $port }}
+          id: redis-{{ .id }}
+          redis_conf: |
+            requirepass {{ $password }}
+            port {{ $port }}
+        manifests: |-
+          deployment.yaml:
+            location: namespace
+            data:
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: {{ .init.id }}
+              spec:
+                selector:
+                  matchLabels:
+                    app: {{ .init.id }}
+                template:
+                  metadata:
+                    labels:
+                      app: {{ .init.id }}
+                  spec:
+                    containers:
+                    - name: redis
+                      image: redis
+                      ports:
+                      - containerPort: {{ .init.port }}
+                      volumeMounts:
+                      - name: redis-conf
+                        mountPath: "/usr/local/etc/redis"
+                        readOnly: true
+                    volumes:
+                    - name: redis-conf
+                      secret:
+                        secretName: {{ .init.id }}
+                        items:
+                        - key: redis-conf
+                          path: redis.conf
+
+          service.yaml:
+            location: namespace
+            data:
+              apiVersion: v1
+              kind: Service
+              metadata:
+                name: {{ .init.id }}
+              spec:
+                type: ClusterIP
+                selector:
+                  app: {{ .init.id }}
+                ports:
+                - name: tcp-redis
+                  port: {{ .init.port }}
+                  targetPort: {{ .init.port }}
+          secrets.yaml:
+            location: namespace
+            data:
+              apiVersion: v1
+              kind: Secret
+              metadata:
+                name: {{ .init.id }}
+              data:
+                redis-conf: {{ .init.redis_conf | b64enc }}
+                  
+        outputs: |
+          host: {{ .init.id | quote }}
+          port: {{ .init.port }}
+        secrets: |
+          username: ""
+          password: {{ .init.password | quote }}
+  name: redis-in-cluster
+  type: redis
+  

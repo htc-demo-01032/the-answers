@@ -1,0 +1,11 @@
+apiVersion: score.dev/v1b1
+metadata:
+  name: jokes
+containers:
+  jotd:
+    image: .
+service:
+  ports:
+    www:
+      port: 3000
+      targetPort: 3000

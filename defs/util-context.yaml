@@ -1,0 +1,23 @@
+apiVersion: core.api.humanitec.io/v1
+kind: Definition
+
+metadata:
+  id: util-context
+
+entity:
+  criteria:
+  - class: id-breakdown
+  driver_type: humanitec/template
+  driver_inputs:
+    values:
+      templates:
+        outputs: |
+          {{- $parts := (.driver.values.res_id | splitList ".") }}
+          {{- range $index, $part := $parts }}
+          {{ $index | quote }}: {{ $part | quote }}
+          {{- end }}
+          last: {{ $parts | last | quote }}
+      res_id: ${context.res.id}
+  name: util-context
+  type: config
+  

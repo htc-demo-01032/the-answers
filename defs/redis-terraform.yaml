@@ -1,0 +1,44 @@
+apiVersion: entity.humanitec.io/v1b1
+kind: Definition
+metadata:
+  id: redis-azure
+entity:
+  driver_account: azure-sp
+  driver_inputs:
+    values:
+      append_logs_to_error: true
+      credentials_config:
+        environment:
+          ARM_CLIENT_SECRET: "password"
+          ARM_TENANT_ID: "tenant"
+          ARM_CLIENT_ID: "appId"
+      script: |-
+        terraform {
+          required_providers {
+            azurerm = {
+              source  = "hashicorp/azurerm"
+              version = "=3.90.0"
+            }
+          }
+        }
+
+        # Configure the Microsoft Azure Provider
+        provider "azurerm" {
+          features {}
+          subscription_id = "${resources['config.default#azure'].outputs.subscription_id}"
+        }
+      source:
+        url: https://github.com/htc-demo-01032/terraform.git
+        rev: refs/heads/main
+        path: redis
+      variables:
+        location: ${resources['config.default#azure'].outputs.location}
+        resource_group_name: ${resources['config.default#azure'].outputs.resource_group_name}
+        name: ${context.res.id}-${context.env.id}-${context.app.id}-htc-demo-0103
+  driver_type: humanitec/terraform
+  name: redis-azure
+  type: redis
+
+  # Supply matching criteria
+  criteria:
+  - {}
